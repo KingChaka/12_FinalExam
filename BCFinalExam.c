@@ -70,7 +70,9 @@ int main()
 {
     /*CONSTANTS*/
     const char MAIN_WRDS_FILE[] = "FinalExamTextToParse.txt";
-	const char RSVD_WRDS_FILE[] = "FinalReservedWords.txt";
+    const char RSVD_WRDS_FILE[] = "FinalReservedWords.txt";
+    const char END_OF_STR = 0x0;
+
     const short int MAX_LIST_SIZE = 50;
     const short int MAX_WORD_SIZE = 20;
     const short int NOT_FOUND = -1;
@@ -79,8 +81,11 @@ int main()
 
     /*VARAIABLES*/
     char mainWordList[MAX_LIST_SIZE + 1][MAX_WORD_SIZE + 1];
-	char wordsToRemove[MAX_LIST_SIZE + 1][MAX_WORD_SIZE + 1];
+    char wordsToRemove[MAX_LIST_SIZE + 1][MAX_WORD_SIZE + 1];
     char cString[MAX_WORD_SIZE + 1];
+    char word[WRD_SIZE_LIMIT + 1] = { };
+    char lowerChar = END_OF_STR;
+    char readChar = END_OF_STR;
 
     short int position = NOT_FOUND;
     short int rtnCode = NOERR;
@@ -97,30 +102,20 @@ int main()
     bool isFullySrched = false;
     bool isSwapped   = true;
     bool isEnd = false;
+    bool isDelimiter = false;
+    bool isSkippable = false;
+    bool isValid = false;
     bool debug = false;
         // bool debug = true;
 
     FILE *mainWordsFile;
-	FILE *rsvdWordsFile;
-
-    /* CONSTANTS*/
-    const char END_OF_STR = '\0';
-    const char NBSP = 160;                                  // "non-breaking space"; whitespace not recognized by isspace().
-
-    /* VARIABLES */
-    char word[WRD_SIZE_LIMIT + 1] = { };
-    char lowerChar = END_OF_STR;
-    char readChar = END_OF_STR;
-
-    bool isDelimiter = false;
-    bool isSkippable = false;
-    bool isValid = false;
+    FILE *rsvdWordsFile;
 
 
     /* LOAD FILE TO MEMORY * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     clearScreen();
     mainWordsFile = fopen(MAIN_WRDS_FILE, "r");
-	rsvdWordsFile = fopen(RSVD_WRDS_FILE, "r");
+    rsvdWordsFile = fopen(RSVD_WRDS_FILE, "r");
 
     if(mainWordsFile == NULL)
     {
@@ -144,7 +139,7 @@ int main()
     }                                                       // End of file-to-array
     wrdCnt = --index;
 
-	fclose(rsvdWordsFile);
+    fclose(rsvdWordsFile);
 
 
     /* ROCK SORTING  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -167,7 +162,7 @@ int main()
     }                                                       // End of sorting
 
 
-	/* PARSE WORDS * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    /* PARSE WORDS * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     do
     {
 
@@ -176,7 +171,7 @@ NEXT:
         lowerChar = tolower(readChar);
 
         isEnd = (lowerChar == EOF);
-        isDelimiter = isspace(lowerChar) || (lowerChar == NBSP);
+        isDelimiter = isspace(lowerChar);
         isValid = isalpha(lowerChar);
         isSkippable = ispunct(lowerChar);
 
@@ -207,6 +202,9 @@ NEXT:
             }                                               // closes repeated delimiters condition
 
             word[index] = END_OF_STR;
+            /*binary search injected here */
+
+            /* if word not found then allow the print*/
             printf("%s\n",word);
 
             if(debug)
@@ -229,7 +227,7 @@ NEXT:
     }                                                       // End of do-while block
     while(isEnd == false);                                  // do-while conditional
 
-	fclose(mainWordsFile);
+    fclose(mainWordsFile);
 
 EOP:
     return (rtnCode);
@@ -238,7 +236,7 @@ EOP:
 
 
 /********************************************************************************************/
-/*										    FUNCTIONS
+/*                                          FUNCTIONS
 /********************************************************************************************/
 
 /*
