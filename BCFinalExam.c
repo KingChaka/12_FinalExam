@@ -1,11 +1,12 @@
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <ctype.h>
+
 #ifdef _WIN32
 #include <conio.h>
 #endif
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <string.h>
-#include <ctype.h>
 
 #define WRD_SIZE_LIMIT 20
 
@@ -24,39 +25,49 @@ void clearScreen(void);
  * Invocation:      ./a.out on Unix/Linux/MacOS
  *                    a.exe on Windows
  *
- * Variables:       const char FILENAME[]           - CONSTANT; filename of file with the words
+ * Variables:       const char MAIN_WRDS_FILE[]     - CONSTANT; filename of file with words to be parsed
+ *                  const char RSVD_WRDS_FILE[]     - CONSTANT; filename of file with words to skip
+ *                  const char END_OF_STR           - CONSTANT; the null character used to terminate a char string
+ *
  *                  const short int MAX_LIST_SIZE   - CONSTANT; max number of words from file
- *                  const short int MAX_WORD_SIZE   - CONSTANT; max number of chars per word
  *                  const short int NOT_FOUND       - CONSTANT; indicates that a word is not listed
+ *                  const short int DIVISOR         - CONSTANT; used to divide search range in half
  *                  const short int READERR         - CONSTANT; error code for file open error
  *                  const short int NOERR           - CONSTANT; code for no error
  *
- *                  short char wordList[][]     - 2D array for holding a list of c-strings
- *                  short char cString[]        - Holds c-string values
- *                  short int  fileReadStatus   - return for fscanf(). Used to determine EOF
- *                  short int  alphaStatus      - (+) 1st string = later; (-) 1st string = earlier;
- *                                                 a zero value indicates strings are equal
+ *                  char wordsToRemove[][]      - 2D array for holding a list of strings
+ *                  char cString[]              - Holds string values
+ *                  char lowerChar              - lower-case version of 'readChar'
+ *                  char readChar               - character read from file (as is)
+ *
+ *                  short int fileReadStatus    - return for fscanf(). Used to determine EOF
+ *                  short int alphaStatus       - (+) 1st string = later; (-) 1st string = earlier; a zero value indicates strings are equal
+ *                  short int matchStatus       - Used during search to indicate where in the list a string may be
+ *                  short int position          - Indicates where in 'wordsToRemove' a word is located.
  *                  short int rtnCode           - The current error status of main()
  *                  short int wrdCnt            - The number of words found in the file
- *                  short int index             - Used to index 'wordList' during operations
- *
+ *                  short int index             - Used to index 'wordsToRemove' during operations
  *                  short int range             - The width of the search range
  *                  short int front             - Where the seearch range begins
  *                  short int end               - Where the seearch range ends
  *                  short int mid               - The midpoint of the search range
  *
  *                  bool isFullySrched          - Indicates the whole word list was processed.
- *                  bool isSwapped              - Indicates if a swap was used in sorting
- *                  bool debug                  - Used to enable print statements for debug
+ *                  bool isDelimiter            - Indicates if read character is whitespace
+ *                  bool isSkippable            - Indicates if read character is punctuation or number
+ *                  bool isSwapped              - Indicates if array sorting process is finished or not
+ *                  bool isValid                - Indicates if read character is a letter
  *                  bool isEnd                  - Indicates the end of file/string was reached
+ *                  bool debug                  - Used to enable print statements for debug
  *
- *                  FILE *sourceFile            - Pointer to the file holding the unsorted words
+ *                  FILE *mainWordsFile         - Pointer to the file holding the unsorted words
+ *                  FILE *rsvdWordsFile         - Pointer to the file holding the unsorted words
  *
  * Functions:       clearScreen()               - Cross-platform clear screen from professor
  *                  strcmp()                    - Determines the alphabetic order of c-strings
  *                  strcpy()                    - Used to copy c-strings
  *
- * Written by:      Brandon Crenshaw  7/07/2025
+ * Written by:      Brandon Crenshaw  7/31/2025
  *
  * Modifications:   None
  *
@@ -74,16 +85,15 @@ int main()
     const char END_OF_STR = 0x0;
 
     const short int MAX_LIST_SIZE = 50;
-    const short int MAX_WORD_SIZE = 20;
     const short int NOT_FOUND = -1;
-    const short int READERR   = 10;
-    const short int NOERR     =  0;
+    const short int DIVISOR =  2;
+    const short int READERR = 10;
+    const short int NOERR   =  0;
+
 
     /*VARAIABLES*/
-    char mainWordList[MAX_LIST_SIZE + 1][MAX_WORD_SIZE + 1];
-    char wordsToRemove[MAX_LIST_SIZE + 1][MAX_WORD_SIZE + 1];
-    char cString[MAX_WORD_SIZE + 1];
-    char word[WRD_SIZE_LIMIT + 1] = { };
+    char wordsToRemove[MAX_LIST_SIZE + 1][WRD_SIZE_LIMIT + 1];
+    char cString[WRD_SIZE_LIMIT + 1] = {END_OF_STR};
     char lowerChar = END_OF_STR;
     char readChar = END_OF_STR;
 
@@ -100,11 +110,11 @@ int main()
     short int mid;
 
     bool isFullySrched = false;
-    bool isSwapped   = true;
-    bool isEnd = false;
     bool isDelimiter = false;
     bool isSkippable = false;
+    bool isSwapped   = true;
     bool isValid = false;
+    bool isEnd = false;
     bool debug = false;
         // bool debug = true;
 
@@ -137,8 +147,8 @@ int main()
         fileReadStatus = fscanf(rsvdWordsFile,"%s",wordsToRemove[index++]);
         isEnd = (fileReadStatus == EOF);                    // To avoid negative logic
     }                                                       // End of file-to-array
-    wrdCnt = --index;
 
+    wrdCnt = --index;
     fclose(rsvdWordsFile);
 
     /* ROCK SORTING  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -185,7 +195,7 @@ NEXT:
 
         if(isValid)
         {
-            word[index++] = lowerChar;
+            cString[index++] = lowerChar;
         }                                                   // close isValid condition
 
         if(isSkippable)
@@ -200,65 +210,66 @@ NEXT:
                 goto NEXT;
             }                                               // closes repeated delimiters condition
 
-            word[index] = END_OF_STR;
+            cString[index] = END_OF_STR;
 
 
             /* BINARY SEARCH * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
             front = 0;
             end = wrdCnt - 1;
             range = end - front;
-            mid = front + (range / 2);
+            mid = front + (range / DIVISOR);
             isFullySrched = false;
             position = NOT_FOUND;
 
             if(debug)
             {
                 printf("\tDEBUG: IN LOOP: str:%hd, mid:%hd, end:%hd, position:%hd\n", front, mid, end, position);
-            }                                                 // End of DEBUG statement
+            }                                               // End of DEBUG statement
 
             while(isFullySrched == false && position == NOT_FOUND)
             {
 
-                matchStatus = strcmp(word, wordsToRemove[front]);
+                matchStatus = strcmp(cString, wordsToRemove[front]);
                 if(matchStatus == 0)
                 {
                     position = front;
-                }                                                   // End of 1st word check
+                }                                           // End of 1st word check
 
-                matchStatus = strcmp(word, wordsToRemove[end]);
+                matchStatus = strcmp(cString, wordsToRemove[end]);
                 if(matchStatus == 0)
                 {
                     position = end;
-                }                                                   // End of last word check
+                }                                           // End of last word check
 
-                matchStatus = strcmp(word, wordsToRemove[mid]);
+                matchStatus = strcmp(cString, wordsToRemove[mid]);
                 if(matchStatus == 0)
                 {
                     position = mid;
-                }                                                   // If word is 'found'
+                }                                           // If word is 'found'
                     else if(matchStatus < 0)
                     {
                         end = mid - 1;
-                    }                                               // If word is 'earlier'
+                    }                                       // If word is 'earlier'
                         else
                         {
                             front = mid + 1;
-                        }                                           // If word is 'later'
+                        }                                   // If word is 'later'
 
                 range = end - front;
-                mid = front + (range / 2);
+                mid = front + (range / DIVISOR);
                 isFullySrched = range < 1;
+
                 if(debug)
                 {
                     printf("\tDEBUG: IN LOOP: str:%hd, mid:%hd, end:%hd, position:%hd\n", front, mid, end, position);
                 }
-            }                                                       // End of Binary Search
+            }                                               // End of Binary Search
 
+            /* END OF BINARY SEARCH - RETURN TO PARSE CODE * * * * * * * * * * * * * * * * * * */
 
-            /* END OF BINARY SEARCH - RETURN TO PARSE CODE*/
             if(position == NOT_FOUND)
             {
-                printf("%s\n",word);
+                printf("%s\n",cString);
             }
 
             if(debug)
@@ -269,14 +280,14 @@ NEXT:
             index = 0;
             for(short int i = 0; i < (WRD_SIZE_LIMIT + 1); i++)
             {
-                word[i] = END_OF_STR;
+                cString[i] = END_OF_STR;
             }                                               // close add end of string char code
         }                                                   // close isDelimitter condition
 
         if(isEnd && position == NOT_FOUND)
         {
-            word[index] = END_OF_STR;
-            printf("%s\n",word);
+            cString[index] = END_OF_STR;
+            printf("%s\n",cString);
         }                                                   // End of isEnd condition
     }                                                       // End of do-while block
     while(isEnd == false);                                  // do-while conditional
@@ -290,7 +301,7 @@ EOP:
 
 
 /********************************************************************************************/
-/*                                          FUNCTIONS
+/*                                          FUNCTIONS                                       */
 /********************************************************************************************/
 
 /*
