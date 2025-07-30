@@ -98,16 +98,16 @@ int main()
     char readChar = END_OF_STR;
 
     short int position = NOT_FOUND;
+    short int fileReadStatus = 0;
+    short int alphaStatus = 0;
+    short int matchStatus = 0;
     short int rtnCode = NOERR;
-    short int fileReadStatus;
-    short int alphaStatus;
-    short int matchStatus;
     short int wrdCnt = 0;
     short int front = 0;
     short int index = 0;
-    short int range;
-    short int end;
-    short int mid;
+    short int range = 0;
+    short int end = 0;
+    short int mid = 0;
 
     bool isFullySrched = false;
     bool isDelimiter = false;
