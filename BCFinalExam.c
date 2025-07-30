@@ -202,10 +202,56 @@ NEXT:
             }                                               // closes repeated delimiters condition
 
             word[index] = END_OF_STR;
-            /*binary search injected here */
 
-            /* if word not found then allow the print*/
-            printf("%s\n",word);
+
+            /* BINARY SEARCH * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+            end = wrdCnt - 1;
+            range = end - front;
+            mid = front + (range / 2);
+
+            while(isFullySrched == false && position == NOT_FOUND)
+            {
+                if(debug)
+                {
+                    printf("\tDEBUG: IN LOOP: str:%hd, mid:%hd, end:%hd\n", front, mid, end);
+                }                                                   // End of DEBUG statement
+
+                matchStatus = strcmp(cString, mainWordList[front]);
+                if(matchStatus == 0)
+                {
+                    position = front;
+                }                                                   // End of 1st word check
+
+                matchStatus = strcmp(cString, mainWordList[end]);
+                if(matchStatus == 0)
+                {
+                    position = end;
+                }                                                   // End of last word check
+
+                matchStatus = strcmp(cString, mainWordList[mid]);
+                if(matchStatus == 0)
+                {
+                    position = mid;
+                }                                                   // If word is 'found'
+                    else if(matchStatus < 0)
+                    {
+                        end = mid - 1;
+                    }                                               // If word is 'earlier'
+                        else
+                        {
+                            front = mid + 1;
+                        }                                           // If word is 'later'
+
+                range = end - front;
+                mid = front + (range / 2);
+                isFullySrched = range < 1;
+            }                                                       // End of Binary Search
+
+            /* RETURN TO PARSE CODE*/
+            if(position == NOT_FOUND)
+            {
+                printf("%s\n",word);
+            }
 
             if(debug)
             {
@@ -219,7 +265,7 @@ NEXT:
             }                                               // close add end of string char code
         }                                                   // close isDelimitter condition
 
-        if(isEnd)
+        if(isEnd && position == NOT_FOUND)
         {
             word[index] = END_OF_STR;
             printf("%s\n",word);
