@@ -7,6 +7,8 @@
 #include <string.h>
 #include <ctype.h>
 
+#define WRD_SIZE_LIMIT 20
+
 
 /* PROTOTYPES */
 void clearScreen(void);
@@ -87,7 +89,7 @@ int main()
     short int matchStatus;
     short int wrdCnt = 0;
     short int front = 0;
-    short int index;
+    short int index = 0;
     short int range;
     short int end;
     short int mid;
@@ -96,9 +98,23 @@ int main()
     bool isSwapped   = true;
     bool isEnd = false;
     bool debug = false;
+        // bool debug = true;
 
     FILE *mainWordsFile;
 	FILE *rsvdWordsFile;
+
+    /* CONSTANTS*/
+    const char END_OF_STR = '\0';
+    const char NBSP = 160;                                  // "non-breaking space"; whitespace not recognized by isspace().
+
+    /* VARIABLES */
+    char word[WRD_SIZE_LIMIT + 1] = { };
+    char lowerChar = END_OF_STR;
+    char readChar = END_OF_STR;
+
+    bool isDelimiter = false;
+    bool isSkippable = false;
+    bool isValid = false;
 
 
     /* LOAD FILE TO MEMORY * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -111,16 +127,15 @@ int main()
         printf("\tERROR: '%s' failed to open.\n",MAIN_WRDS_FILE);
         rtnCode = READERR;
         goto EOP;
-    }                                                       // End of Read File Error
+    }                                                       // End of Read Main File Error
 
     if(rsvdWordsFile == NULL)
     {
         printf("\tERROR: '%s' failed to open.\n",RSVD_WRDS_FILE);
         rtnCode = READERR;
         goto EOP;
-    }                                                       // End of Read File Error
+    }                                                       // End of Read RSVD words File Error
 
-	
     index = 0;
     while(isEnd == false && index < MAX_LIST_SIZE + 1)
     {
@@ -129,7 +144,6 @@ int main()
     }                                                       // End of file-to-array
     wrdCnt = --index;
 
-    fclose(mainWordsFile);
 	fclose(rsvdWordsFile);
 
 
@@ -153,89 +167,69 @@ int main()
     }                                                       // End of sorting
 
 
-    /* PRINT SORTED LIST * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    printf("\nThe sorted list of %hd words..\n",wrdCnt);
-    for(short int i = 0; i < wrdCnt; i++)
+	/* PARSE WORDS * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+    do
     {
-        printf("   %s\n",wordsToRemove[i]);
-    }                                                       // End of print array
 
+NEXT:
+        readChar = fgetc(mainWordsFile);
+        lowerChar = tolower(readChar);
 
-    /* PROMPTING * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    printf("Enter the word you would like to search for:  ");
-    scanf("%s", cString);                                   // cString as user input
-    while(getchar() != '\n');
+        isEnd = (lowerChar == EOF);
+        isDelimiter = isspace(lowerChar) || (lowerChar == NBSP);
+        isValid = isalpha(lowerChar);
+        isSkippable = ispunct(lowerChar);
 
-
-    /* INPUT VALIDATION  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    index = 0;
-    isEnd = false;
-    while (isEnd == false)
-    {
-        isEnd = (cString[index] == '\n');                   // To avoid negative logic
-        cString[index] = tolower(cString[index++]);
-    }                                                       // End of case change loop
-
-    if(debug)
-    {
-        printf("\n\tDEBUG: validated search word is \"%s\"\n", cString);
-    }                                                       // End of DEBUG statement
-
-
-    /* BINARY SEARCH * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    end = wrdCnt - 1;
-    range = end - front;
-    mid = front + (range / 2);
-
-    while(isFullySrched == false && position == NOT_FOUND)
-    {
         if(debug)
         {
-            printf("\tDEBUG: IN LOOP: str:%hd, mid:%hd, end:%hd\n", front, mid, end);
-        }                                                   // End of DEBUG statement
-
-        matchStatus = strcmp(cString, wordsToRemove[front]);
-        if(matchStatus == 0)
-        {
-            position = front;
-        }                                                   // End of 1st word check
-
-        matchStatus = strcmp(cString, wordsToRemove[end]);
-        if(matchStatus == 0)
-        {
-            position = end;
-        }                                                   // End of last word check
-
-        matchStatus = strcmp(cString, wordsToRemove[mid]);
-        if(matchStatus == 0)
-        {
-            position = mid;
-        }                                                   // If word is 'found'
-            else if(matchStatus < 0)
+            printf("[%c]",lowerChar);
+            if(isDelimiter)
             {
-                end = mid - 1;
-            }                                               // If word is 'earlier'
-                else
-                {
-                    front = mid + 1;
-                }                                           // If word is 'later'
+                printf("\n");
+            }                                               // close if in debug: newline for new word
+        }                                                   // close debug statement
 
-        range = end - front;
-        mid = front + (range / 2);
-        isFullySrched = range < 1;
-    }                                                       // End of Binary Search
-
-
-    /* REPORTING * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-    if(position == NOT_FOUND)
-    {
-        printf("\"%s\" was not found...\n",cString);
-    }                                                       // Reporting: word NOT found.
-        else
+        if(isValid)
         {
-            printf("\"%s\" is word #%hd of %hd.\n",cString, position + 1, wrdCnt);
-        }                                                   // Reporting: word WAS found.
+            word[index++] = lowerChar;
+        }                                                   // close isValid condition
 
+        if(isSkippable)
+        {
+            goto NEXT;
+        }                                                   // close isSkippable (punctuation) condition
+
+        if(isDelimiter)
+        {
+            if(index == 0)
+            {
+                goto NEXT;
+            }                                               // closes repeated delimiters condition
+
+            word[index] = END_OF_STR;
+            printf("%s\n",word);
+
+            if(debug)
+            {
+                printf("\n");
+            }                                               // close debug statement
+
+            index = 0;
+            for(short int i = 0; i < (WRD_SIZE_LIMIT + 1); i++)
+            {
+                word[i] = END_OF_STR;
+            }                                               // close add end of string char code
+        }                                                   // close isDelimitter condition
+
+        if(isEnd)
+        {
+            word[index] = END_OF_STR;
+            printf("%s\n",word);
+        }                                                   // End of isEnd condition
+    }                                                       // End of do-while block
+    while(isEnd == false);                                  // do-while conditional
+
+	fclose(mainWordsFile);
 
 EOP:
     return (rtnCode);
