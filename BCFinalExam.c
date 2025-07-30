@@ -141,7 +141,6 @@ int main()
 
     fclose(rsvdWordsFile);
 
-
     /* ROCK SORTING  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
     while(isSwapped)
     {
@@ -205,30 +204,34 @@ NEXT:
 
 
             /* BINARY SEARCH * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+            front = 0;
             end = wrdCnt - 1;
             range = end - front;
             mid = front + (range / 2);
+            isFullySrched = false;
+            position = NOT_FOUND;
+
+            if(debug)
+            {
+                printf("\tDEBUG: IN LOOP: str:%hd, mid:%hd, end:%hd, position:%hd\n", front, mid, end, position);
+            }                                                 // End of DEBUG statement
 
             while(isFullySrched == false && position == NOT_FOUND)
             {
-                if(debug)
-                {
-                    printf("\tDEBUG: IN LOOP: str:%hd, mid:%hd, end:%hd\n", front, mid, end);
-                }                                                   // End of DEBUG statement
 
-                matchStatus = strcmp(cString, mainWordList[front]);
+                matchStatus = strcmp(word, wordsToRemove[front]);
                 if(matchStatus == 0)
                 {
                     position = front;
                 }                                                   // End of 1st word check
 
-                matchStatus = strcmp(cString, mainWordList[end]);
+                matchStatus = strcmp(word, wordsToRemove[end]);
                 if(matchStatus == 0)
                 {
                     position = end;
                 }                                                   // End of last word check
 
-                matchStatus = strcmp(cString, mainWordList[mid]);
+                matchStatus = strcmp(word, wordsToRemove[mid]);
                 if(matchStatus == 0)
                 {
                     position = mid;
@@ -245,9 +248,14 @@ NEXT:
                 range = end - front;
                 mid = front + (range / 2);
                 isFullySrched = range < 1;
+                if(debug)
+                {
+                    printf("\tDEBUG: IN LOOP: str:%hd, mid:%hd, end:%hd, position:%hd\n", front, mid, end, position);
+                }
             }                                                       // End of Binary Search
 
-            /* RETURN TO PARSE CODE*/
+
+            /* END OF BINARY SEARCH - RETURN TO PARSE CODE*/
             if(position == NOT_FOUND)
             {
                 printf("%s\n",word);
