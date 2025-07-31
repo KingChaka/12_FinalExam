@@ -8,7 +8,7 @@
 #include <conio.h>
 #endif
 
-#define WRD_SIZE_LIMIT 20
+#define WRD_SIZE_LIMIT 20									// used to allow array init with variable : gcc compiler
 
 
 /* PROTOTYPES */
@@ -16,9 +16,9 @@ void clearScreen(void);
 
 /*
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * Purpose:         This program takes in words from an ASCII file, sorts, and prints them.
- *                  The user is then prompted for a word to search this list. If found, the
- *                  sorted location of this word is reported.
+ * Purpose:         This program takes in two ASCII files; one for parsing words and the other with
+ *                     a list of reserved words to ignore in the former. Each parsed word, that is not
+ *                     ignored will be printed to the command line /terminal.
  *
  * Program name:    BCFinalExam.c
  *
@@ -41,15 +41,14 @@ void clearScreen(void);
  *                  char readChar               - character read from file (as is)
  *
  *                  short int fileReadStatus    - return for fscanf(). Used to determine EOF
- *                  short int alphaStatus       - (+) 1st string = later; (-) 1st string = earlier; a zero value indicates strings are equal
- *                  short int matchStatus       - Used during search to indicate where in the list a string may be
+ *                  short int matchStatus       - Indicates if a word may be earlier/later in search or a match
  *                  short int position          - Indicates where in 'wordsToRemove' a word is located.
  *                  short int rtnCode           - The current error status of main()
- *                  short int wrdCnt            - The number of words found in the file
- *                  short int index             - Used to index 'wordsToRemove' during operations
+ *                  short int wrdCnt            - The number of words found in the rsvd words file
+ *                  short int index             - Used to index the 'wordsToRemove' array during operation
  *                  short int range             - The width of the search range
- *                  short int front             - Where the seearch range begins
- *                  short int end               - Where the seearch range ends
+ *                  short int front             - Where the search range begins
+ *                  short int end               - Where the search range ends
  *                  short int mid               - The midpoint of the search range
  *
  *                  bool isFullySrched          - Indicates the whole word list was processed.
@@ -60,8 +59,8 @@ void clearScreen(void);
  *                  bool isEnd                  - Indicates the end of file/string was reached
  *                  bool debug                  - Used to enable print statements for debug
  *
- *                  FILE *mainWordsFile         - Pointer to the file holding the unsorted words
- *                  FILE *rsvdWordsFile         - Pointer to the file holding the unsorted words
+ *                  FILE *mainWordsFile         - Pointer to the file holding words to be parsed
+ *                  FILE *rsvdWordsFile         - Pointer to the file holding the list of reserved words
  *
  * Functions:       clearScreen()               - Cross-platform clear screen from professor
  *                  strcmp()                    - Determines the alphabetic order of c-strings
@@ -71,9 +70,9 @@ void clearScreen(void);
  *
  * Modifications:   None
  *
- * Special notes:   Program assumes that all words in the ascii file are lower-case.
- *                  The word list limited to 50 words; words limited to 20 chars.
- *                  If multiple instances of a word; ANY of their positions can be reported.
+ * Special notes:   Program assumes that all words in the ascii 'rsvd' file are lower-case.
+ *                  The rsvd word list is limited to 50 words; & the words are limited to 20 chars.
+ *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  */
 
@@ -99,7 +98,6 @@ int main()
 
     short int position = NOT_FOUND;
     short int fileReadStatus = 0;
-    short int alphaStatus = 0;
     short int matchStatus = 0;
     short int rtnCode = NOERR;
     short int wrdCnt = 0;
@@ -159,8 +157,8 @@ int main()
 
         for(short int i = 0; i < index; i++)
         {
-            alphaStatus = strcmp(wordsToRemove[i], wordsToRemove[i+1]);
-            if(alphaStatus > 0)
+            matchStatus = strcmp(wordsToRemove[i], wordsToRemove[i+1]);
+            if(matchStatus > 0)
             {
                 strcpy(cString, wordsToRemove[i]);          // cString as a placeholder
                 strcpy(wordsToRemove[i], wordsToRemove[i+1]);
@@ -212,8 +210,8 @@ NEXT:
 
             cString[index] = END_OF_STR;
 
-
             /* BINARY SEARCH * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
             front = 0;
             end = wrdCnt - 1;
             range = end - front;
@@ -226,9 +224,8 @@ NEXT:
                 printf("\tDEBUG: IN LOOP: str:%hd, mid:%hd, end:%hd, position:%hd\n", front, mid, end, position);
             }                                               // End of DEBUG statement
 
-            while(isFullySrched == false && position == NOT_FOUND)
+            do
             {
-
                 matchStatus = strcmp(cString, wordsToRemove[front]);
                 if(matchStatus == 0)
                 {
@@ -263,7 +260,8 @@ NEXT:
                 {
                     printf("\tDEBUG: IN LOOP: str:%hd, mid:%hd, end:%hd, position:%hd\n", front, mid, end, position);
                 }
-            }                                               // End of Binary Search
+            }                                               // End of do-while block : Binary Search
+            while(isFullySrched == false && position == NOT_FOUND);
 
             /* END OF BINARY SEARCH - RETURN TO PARSE CODE * * * * * * * * * * * * * * * * * * */
 
