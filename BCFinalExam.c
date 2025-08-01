@@ -8,7 +8,7 @@
 #include <conio.h>
 #endif
 
-#define WRD_SIZE_LIMIT 20									// used to allow array init with variable : gcc compiler
+#define WRD_SIZE_LIMIT 20                                    // used to allow array init with variable : gcc compiler
 
 
 /* PROTOTYPES */
